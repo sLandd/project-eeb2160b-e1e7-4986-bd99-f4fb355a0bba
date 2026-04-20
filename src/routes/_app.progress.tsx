@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download } from "lucide-react";
+import { Download, AlertTriangle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { studentInfo } from "@/lib/mock-data";
 
@@ -13,6 +13,7 @@ type DayCell = {
   iso: string;
   level: 0 | 1 | 2 | 3 | 4;
   done: number;
+  missed: boolean;
 };
 
 function seeded(n: number) {
@@ -39,17 +40,23 @@ function buildActivity(referenceDate: Date) {
 
     let level: DayCell["level"] = 0;
     let done = 0;
+    let missed = false;
 
     if (!isWeekend) {
-      if (r < 0.18) {
-        level = 0;
-      } else if (r < 0.4) {
+      if (r < 0.12) {
+        // Невыполненный план
+        missed = true;
         level = 1;
         done = 1;
-      } else if (r < 0.65) {
+      } else if (r < 0.3) {
+        level = 0;
+      } else if (r < 0.5) {
+        level = 1;
+        done = 1;
+      } else if (r < 0.72) {
         level = 2;
         done = 2;
-      } else if (r < 0.85) {
+      } else if (r < 0.88) {
         level = 3;
         done = 3 + Math.floor(seeded(idx + 200) * 2);
       } else {
@@ -63,6 +70,7 @@ function buildActivity(referenceDate: Date) {
       iso: cursor.toISOString().slice(0, 10),
       level,
       done,
+      missed,
     });
     cursor.setDate(cursor.getDate() + 1);
   }
@@ -89,6 +97,7 @@ function buildActivity(referenceDate: Date) {
   const totals = {
     active: cells.filter((c) => c.level > 0).length,
     done: cells.reduce((s, c) => s + c.done, 0),
+    missedDays: cells.filter((c) => c.missed),
   };
 
   return { weeks, monthLabels, totals };
@@ -98,12 +107,12 @@ function buildActivity(referenceDate: Date) {
 const REFERENCE_DATE = new Date("2026-04-21T00:00:00Z");
 
 function ProgressPage() {
-  // Build with a stable date — avoids hydration mismatch
   const [data, setData] = useState(() => buildActivity(REFERENCE_DATE));
+  const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
-    // After hydration, refresh with today's date
     setData(buildActivity(new Date()));
+    setHydrated(true);
   }, []);
 
   const { weeks, monthLabels, totals } = data;
@@ -119,12 +128,11 @@ function ProgressPage() {
     rows.push("Сводка за последние полгода");
     rows.push(`Активных дней;${totals.active}`);
     rows.push(`Выполнено заданий всего;${totals.done}`);
+    rows.push(`Дней с невыполненным планом;${totals.missedDays.length}`);
     rows.push("");
-    rows.push("Активность по дням");
-    rows.push("Дата;Заданий");
-    weeks.flat().forEach((c) => {
-      if (c.done > 0) rows.push(`${c.iso};${c.done}`);
-    });
+    rows.push("Невыполненный план");
+    rows.push("Дата");
+    totals.missedDays.forEach((d) => rows.push(d.iso));
 
     const csv = "\uFEFF" + rows.join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -163,8 +171,12 @@ function ProgressPage() {
 
   const dayLabels = ["Пн", "", "Ср", "", "Пт", "", ""];
 
+  const formatDate = (d: Date) =>
+    `${String(d.getDate()).padStart(2, "0")}.${String(d.getMonth() + 1).padStart(2, "0")}.${d.getFullYear()}`;
+
   return (
-    <div className="px-6 py-6 md:px-10 md:py-8">
+    // suppressHydrationWarning so dates rendered after effect won't warn even if SSR snapshot differs
+    <div className="px-6 py-6 md:px-10 md:py-8" suppressHydrationWarning>
       <header>
         <h1 className="text-2xl font-bold md:text-3xl">Прогресс</h1>
         <p className="mt-1 text-sm text-muted-foreground">
@@ -172,12 +184,20 @@ function ProgressPage() {
         </p>
       </header>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2">
+      <section className="mt-6 grid gap-4 sm:grid-cols-3">
         <Stat label="Активных дней" value={String(totals.active)} />
         <Stat label="Выполнено заданий" value={String(totals.done)} />
+        <Stat
+          label="Невыполненный план"
+          value={String(totals.missedDays.length)}
+          tone="warn"
+        />
       </section>
 
-      <section className="mt-8 rounded-xl border bg-card p-6">
+      <section
+        className="mt-8 rounded-xl border bg-card p-6"
+        suppressHydrationWarning
+      >
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold">Активность ученика</h2>
           <span className="text-xs text-muted-foreground">
@@ -185,7 +205,7 @@ function ProgressPage() {
           </span>
         </div>
 
-        <div className="mt-5 w-full overflow-x-auto">
+        <div className="mt-5 w-full overflow-x-auto" suppressHydrationWarning>
           <svg
             width={width}
             height={height}
@@ -228,12 +248,24 @@ function ProgressPage() {
                   width={cellSize}
                   height={cellSize}
                   rx={2}
-                  fill={levelColor(cell.level)}
-                  stroke="color-mix(in oklab, var(--border) 60%, transparent)"
+                  fill={
+                    cell.missed
+                      ? "var(--status-progress)"
+                      : levelColor(cell.level)
+                  }
+                  stroke={
+                    cell.missed
+                      ? "transparent"
+                      : "color-mix(in oklab, var(--border) 60%, transparent)"
+                  }
                 >
                   <title>
                     {cell.iso} —{" "}
-                    {cell.level === 0 ? "Нет активности" : `${cell.done} заданий`}
+                    {cell.missed
+                      ? "План не выполнен"
+                      : cell.level === 0
+                        ? "Нет активности"
+                        : `${cell.done} заданий`}
                   </title>
                 </rect>
               )),
@@ -241,16 +273,61 @@ function ProgressPage() {
           </svg>
         </div>
 
-        <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
-          <span>Меньше</span>
-          {[0, 1, 2, 3, 4].map((l) => (
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-4 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span>Меньше</span>
+            {[0, 1, 2, 3, 4].map((l) => (
+              <span
+                key={l}
+                className="inline-block h-3 w-3 rounded-sm"
+                style={{ backgroundColor: levelColor(l as DayCell["level"]) }}
+              />
+            ))}
+            <span>Больше</span>
+          </div>
+
+          <span className="flex items-center gap-1.5">
             <span
-              key={l}
               className="inline-block h-3 w-3 rounded-sm"
-              style={{ backgroundColor: levelColor(l as DayCell["level"]) }}
+              style={{ backgroundColor: "var(--status-progress)" }}
             />
-          ))}
-          <span>Больше</span>
+            План не выполнен
+          </span>
+        </div>
+
+        <div className="mt-6 rounded-lg border bg-muted/30 p-4" suppressHydrationWarning>
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-status-progress text-status-progress-foreground">
+              <AlertTriangle className="h-4 w-4" />
+            </span>
+            Невыполненный план
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
+              {totals.missedDays.length}
+            </span>
+          </div>
+
+          {totals.missedDays.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">
+              Все планы выполнены — отличная работа!
+            </p>
+          ) : (
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+              {(hydrated
+                ? totals.missedDays.slice(-8).reverse()
+                : totals.missedDays.slice(-8).reverse()
+              ).map((d, i) => (
+                <li key={i} className="flex items-start gap-2.5 text-sm">
+                  <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-status-progress-foreground/70" />
+                  <div>
+                    <div className="font-medium">{formatDate(d.date)}</div>
+                    <div className="text-xs text-muted-foreground">
+                      Часть заданий дня не сдана
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end border-t pt-5">
@@ -267,10 +344,27 @@ function ProgressPage() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "warn";
+}) {
+  const toneClass =
+    tone === "warn"
+      ? "bg-status-progress text-status-progress-foreground"
+      : "bg-card";
+
   return (
-    <div className="rounded-xl border bg-card p-5">
-      <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+    <div className={`rounded-xl border p-5 ${toneClass}`}>
+      <div
+        className={`text-xs font-medium uppercase tracking-wide ${
+          tone ? "opacity-80" : "text-muted-foreground"
+        }`}
+      >
         {label}
       </div>
       <div className="mt-2 text-3xl font-bold">{value}</div>
