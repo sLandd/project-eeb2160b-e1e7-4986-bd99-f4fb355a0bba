@@ -74,6 +74,12 @@ function RegisterPage() {
             </label>
           )}
 
+          <Field
+            label={role === "student" ? "ID ученика" : "ID ребёнка"}
+            placeholder="Например: ST-2026-0421"
+            required
+          />
+
           <button
             type="submit"
             className="h-11 w-full rounded-lg bg-primary text-sm font-semibold text-primary-foreground hover:opacity-90"

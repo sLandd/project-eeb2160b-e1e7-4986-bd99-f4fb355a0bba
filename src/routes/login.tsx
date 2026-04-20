@@ -33,9 +33,9 @@ function LoginPage() {
           <Field label="Пароль" type="password" placeholder="••••••••" required />
 
           <div className="text-right">
-            <a href="#" className="text-sm font-medium text-primary hover:underline">
+            <Link to="/forgot-password" className="text-sm font-medium text-primary hover:underline">
               Забыли пароль?
-            </a>
+            </Link>
           </div>
 
           <button
