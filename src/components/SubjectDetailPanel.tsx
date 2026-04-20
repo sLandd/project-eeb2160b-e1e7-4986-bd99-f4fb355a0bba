@@ -4,16 +4,14 @@ import type { Subject } from "@/lib/mock-data";
 import { StatusBadge } from "./StatusBadge";
 
 const tabs = [
-  { id: "grades", label: "Оценки" },
   { id: "schedule", label: "Расписание" },
-  { id: "notes", label: "Заметки учителя" },
   { id: "assignments", label: "Задания" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
 export function SubjectDetailPanel({ subject, onClose }: { subject: Subject; onClose: () => void }) {
-  const [tab, setTab] = useState<TabId>("grades");
+  const [tab, setTab] = useState<TabId>("schedule");
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -25,11 +23,6 @@ export function SubjectDetailPanel({ subject, onClose }: { subject: Subject; onC
             <div>
               <h2 className="text-xl font-bold">{subject.name}</h2>
               <p className="mt-0.5 text-sm text-muted-foreground">{subject.teacher}</p>
-              <div className="mt-2 flex items-center gap-2">
-                <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-0.5 text-xs font-semibold text-accent-foreground">
-                  Средний: {subject.averageGrade.toFixed(1)}
-                </span>
-              </div>
             </div>
           </div>
           <button
@@ -60,38 +53,6 @@ export function SubjectDetailPanel({ subject, onClose }: { subject: Subject; onC
         </div>
 
         <div className="p-6">
-          {tab === "grades" && (
-            <div className="overflow-hidden rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-muted text-xs uppercase text-muted-foreground">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Работа</th>
-                    <th className="px-3 py-2 text-left">Дата</th>
-                    <th className="px-3 py-2 text-left">Оценка</th>
-                    <th className="px-3 py-2 text-left">Комментарий</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {subject.grades.length === 0 && (
-                    <tr><td colSpan={4} className="px-3 py-6 text-center text-muted-foreground">Оценок пока нет</td></tr>
-                  )}
-                  {subject.grades.map((g, i) => (
-                    <tr key={i} className="border-t">
-                      <td className="px-3 py-2.5">{g.title}</td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{g.date}</td>
-                      <td className="px-3 py-2.5">
-                        <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-status-graded font-semibold text-status-graded-foreground">
-                          {g.grade}
-                        </span>
-                      </td>
-                      <td className="px-3 py-2.5 text-muted-foreground">{g.comment || "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
           {tab === "schedule" && (
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full text-sm">
@@ -113,22 +74,6 @@ export function SubjectDetailPanel({ subject, onClose }: { subject: Subject; onC
                 </tbody>
               </table>
             </div>
-          )}
-
-          {tab === "notes" && (
-            <ul className="space-y-3">
-              {subject.notes.length === 0 && (
-                <li className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
-                  Заметок от учителя пока нет
-                </li>
-              )}
-              {subject.notes.map((n, i) => (
-                <li key={i} className="rounded-lg border p-4">
-                  <div className="text-xs text-muted-foreground">{n.date}</div>
-                  <p className="mt-1 text-sm">{n.text}</p>
-                </li>
-              ))}
-            </ul>
           )}
 
           {tab === "assignments" && (

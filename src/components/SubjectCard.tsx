@@ -12,9 +12,6 @@ export function SubjectCard({ subject, onClick }: { subject: Subject; onClick: (
       />
       <div className="flex items-start justify-between gap-3 pl-2">
         <div className="text-3xl">{subject.emoji}</div>
-        <span className="inline-flex items-center rounded-full bg-accent px-2.5 py-1 text-xs font-semibold text-accent-foreground">
-          {subject.averageGrade.toFixed(1)}
-        </span>
       </div>
       <h3 className="mt-3 pl-2 text-base font-semibold text-foreground">{subject.name}</h3>
       <p className="mt-1 pl-2 text-xs text-muted-foreground">{subject.teacher}</p>
