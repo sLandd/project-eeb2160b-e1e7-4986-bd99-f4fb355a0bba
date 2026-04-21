@@ -356,6 +356,67 @@ function ProgressPage() {
           )}
         </div>
 
+        <div className="mt-6 rounded-lg border bg-muted/30 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <GraduationCap className="h-4 w-4" />
+            </span>
+            Оценки
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
+              средний {gradeStats.overall.toFixed(2)} · всего {gradeStats.allGrades.length}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {subjects.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
+              >
+                <span className="text-xl">{s.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{s.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.grades.length} {s.grades.length === 1 ? "оценка" : "оценок"}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${gradeColor(s.averageGrade)}`}
+                >
+                  {s.averageGrade.toFixed(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Последние оценки
+            </div>
+            <ul className="space-y-2">
+              {gradeStats.recent.map((g, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
+                >
+                  <span className="text-lg">{g.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{g.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {g.subject} · {g.date}
+                    </div>
+                  </div>
+                  <span
+                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${gradeColor(g.grade)}`}
+                  >
+                    {g.grade}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+
         <div className="mt-6 flex justify-end border-t pt-5">
           <button
             onClick={handleDownloadReport}
