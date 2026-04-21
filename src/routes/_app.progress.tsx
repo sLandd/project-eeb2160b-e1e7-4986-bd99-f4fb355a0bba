@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
-import { studentInfo } from "@/lib/mock-data";
+import { Download, AlertTriangle, GraduationCap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { studentInfo, subjects } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/progress")({
   component: ProgressPage,
@@ -117,6 +117,17 @@ function ProgressPage() {
 
   const { weeks, monthLabels, totals } = data;
 
+  const gradeStats = useMemo(() => {
+    const allGrades = subjects.flatMap((s) =>
+      s.grades.map((g) => ({ ...g, subject: s.name, emoji: s.emoji })),
+    );
+    const overall = allGrades.length
+      ? allGrades.reduce((sum, g) => sum + g.grade, 0) / allGrades.length
+      : 0;
+    const recent = [...allGrades].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+    return { allGrades, overall, recent };
+  }, []);
+
   const handleDownloadReport = () => {
     const rows: string[] = [];
     rows.push("Отчёт об активности");
@@ -129,6 +140,20 @@ function ProgressPage() {
     rows.push(`Активных дней;${totals.active}`);
     rows.push(`Выполнено заданий всего;${totals.done}`);
     rows.push(`Дней с невыполненным планом;${totals.missedDays.length}`);
+    rows.push(`Общий средний балл;${gradeStats.overall.toFixed(2)}`);
+    rows.push("");
+    rows.push("Средний балл по предметам");
+    rows.push("Предмет;Средний балл;Количество оценок");
+    subjects.forEach((s) =>
+      rows.push(`${s.name};${s.averageGrade.toFixed(1)};${s.grades.length}`),
+    );
+    rows.push("");
+    rows.push("Все оценки");
+    rows.push("Дата;Предмет;Работа;Оценка;Комментарий");
+    gradeStats.allGrades
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .forEach((g) => rows.push(`${g.date};${g.subject};${g.title};${g.grade};${g.comment}`));
     rows.push("");
     rows.push("Невыполненный план");
     rows.push("Дата");
@@ -145,6 +170,15 @@ function ProgressPage() {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
   };
+
+  const gradeColor = (g: number) =>
+    g >= 5
+      ? "bg-status-graded text-status-graded-foreground"
+      : g >= 4
+        ? "bg-status-submitted text-status-submitted-foreground"
+        : g >= 3
+          ? "bg-status-progress text-status-progress-foreground"
+          : "bg-status-overdue text-status-overdue-foreground";
 
   const cellSize = 12;
   const gap = 3;
@@ -184,9 +218,10 @@ function ProgressPage() {
         </p>
       </header>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Активных дней" value={String(totals.active)} />
         <Stat label="Выполнено заданий" value={String(totals.done)} />
+        <Stat label="Средний балл" value={gradeStats.overall.toFixed(1)} />
         <Stat
           label="Невыполненный план"
           value={String(totals.missedDays.length)}
@@ -328,6 +363,67 @@ function ProgressPage() {
               ))}
             </ul>
           )}
+        </div>
+
+        <div className="mt-6 rounded-lg border bg-muted/30 p-4">
+          <div className="flex items-center gap-2 text-sm font-semibold">
+            <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+              <GraduationCap className="h-4 w-4" />
+            </span>
+            Оценки
+            <span className="ml-auto text-xs font-normal text-muted-foreground">
+              средний {gradeStats.overall.toFixed(2)} · всего {gradeStats.allGrades.length}
+            </span>
+          </div>
+
+          <div className="mt-4 grid gap-2 sm:grid-cols-2">
+            {subjects.map((s) => (
+              <div
+                key={s.id}
+                className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
+              >
+                <span className="text-xl">{s.emoji}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{s.name}</div>
+                  <div className="text-xs text-muted-foreground">
+                    {s.grades.length} {s.grades.length === 1 ? "оценка" : "оценок"}
+                  </div>
+                </div>
+                <span
+                  className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${gradeColor(s.averageGrade)}`}
+                >
+                  {s.averageGrade.toFixed(1)}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5">
+            <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Последние оценки
+            </div>
+            <ul className="space-y-2">
+              {gradeStats.recent.map((g, i) => (
+                <li
+                  key={i}
+                  className="flex items-center gap-3 rounded-lg border bg-card px-3 py-2.5"
+                >
+                  <span className="text-lg">{g.emoji}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm font-medium">{g.title}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {g.subject} · {g.date}
+                    </div>
+                  </div>
+                  <span
+                    className={`inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold ${gradeColor(g.grade)}`}
+                  >
+                    {g.grade}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </div>
         </div>
 
         <div className="mt-6 flex justify-end border-t pt-5">
