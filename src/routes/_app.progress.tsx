@@ -171,7 +171,16 @@ function ProgressPage() {
     URL.revokeObjectURL(url);
   };
 
-  const cellSize = 12;
+  const gradeColor = (g: number) =>
+    g >= 5
+      ? "bg-status-graded text-status-graded-foreground"
+      : g >= 4
+        ? "bg-status-submitted text-status-submitted-foreground"
+        : g >= 3
+          ? "bg-status-progress text-status-progress-foreground"
+          : "bg-status-overdue text-status-overdue-foreground";
+
+
   const gap = 3;
   const colW = cellSize + gap;
   const leftPad = 28;
