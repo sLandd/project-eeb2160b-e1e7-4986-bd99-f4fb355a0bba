@@ -4,14 +4,21 @@ import type { Subject } from "@/lib/mock-data";
 import { StatusBadge } from "./StatusBadge";
 
 const tabs = [
+  { id: "grades", label: "Оценки" },
   { id: "schedule", label: "Расписание" },
   { id: "assignments", label: "Задания" },
 ] as const;
 
 type TabId = (typeof tabs)[number]["id"];
 
+const gradeColor = (g: number) =>
+  g >= 5 ? "text-status-graded-foreground bg-status-graded" :
+  g >= 4 ? "text-status-submitted-foreground bg-status-submitted" :
+  g >= 3 ? "text-status-progress-foreground bg-status-progress" :
+  "text-status-overdue-foreground bg-status-overdue";
+
 export function SubjectDetailPanel({ subject, onClose }: { subject: Subject; onClose: () => void }) {
-  const [tab, setTab] = useState<TabId>("schedule");
+  const [tab, setTab] = useState<TabId>("grades");
 
   return (
     <div className="fixed inset-0 z-50 flex">
@@ -53,6 +60,38 @@ export function SubjectDetailPanel({ subject, onClose }: { subject: Subject; onC
         </div>
 
         <div className="p-6">
+          {tab === "grades" && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between rounded-lg border bg-muted/40 p-4">
+                <div className="text-sm text-muted-foreground">Средний балл</div>
+                <div className="text-2xl font-bold">{subject.averageGrade.toFixed(1)}</div>
+              </div>
+              <ul className="space-y-2">
+                {subject.grades.length === 0 && (
+                  <li className="rounded-lg border bg-muted/40 p-4 text-sm text-muted-foreground">
+                    Оценок пока нет
+                  </li>
+                )}
+                {subject.grades.map((g, i) => (
+                  <li key={i} className="flex items-start justify-between gap-3 rounded-lg border p-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-medium">{g.title}</div>
+                      <div className="mt-0.5 text-xs text-muted-foreground">{g.date}</div>
+                      {g.comment && (
+                        <div className="mt-2 text-xs text-muted-foreground">{g.comment}</div>
+                      )}
+                    </div>
+                    <span
+                      className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold ${gradeColor(g.grade)}`}
+                    >
+                      {g.grade}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {tab === "schedule" && (
             <div className="overflow-hidden rounded-lg border">
               <table className="w-full text-sm">
