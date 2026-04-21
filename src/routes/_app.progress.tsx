@@ -180,7 +180,7 @@ function ProgressPage() {
           ? "bg-status-progress text-status-progress-foreground"
           : "bg-status-overdue text-status-overdue-foreground";
 
-
+  const cellSize = 12;
   const gap = 3;
   const colW = cellSize + gap;
   const leftPad = 28;
