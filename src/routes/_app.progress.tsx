@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { Download, AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
-import { studentInfo } from "@/lib/mock-data";
+import { Download, AlertTriangle, GraduationCap } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { studentInfo, subjects } from "@/lib/mock-data";
 
 export const Route = createFileRoute("/_app/progress")({
   component: ProgressPage,
@@ -117,6 +117,17 @@ function ProgressPage() {
 
   const { weeks, monthLabels, totals } = data;
 
+  const gradeStats = useMemo(() => {
+    const allGrades = subjects.flatMap((s) =>
+      s.grades.map((g) => ({ ...g, subject: s.name, emoji: s.emoji })),
+    );
+    const overall = allGrades.length
+      ? allGrades.reduce((sum, g) => sum + g.grade, 0) / allGrades.length
+      : 0;
+    const recent = [...allGrades].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6);
+    return { allGrades, overall, recent };
+  }, []);
+
   const handleDownloadReport = () => {
     const rows: string[] = [];
     rows.push("Отчёт об активности");
@@ -129,6 +140,20 @@ function ProgressPage() {
     rows.push(`Активных дней;${totals.active}`);
     rows.push(`Выполнено заданий всего;${totals.done}`);
     rows.push(`Дней с невыполненным планом;${totals.missedDays.length}`);
+    rows.push(`Общий средний балл;${gradeStats.overall.toFixed(2)}`);
+    rows.push("");
+    rows.push("Средний балл по предметам");
+    rows.push("Предмет;Средний балл;Количество оценок");
+    subjects.forEach((s) =>
+      rows.push(`${s.name};${s.averageGrade.toFixed(1)};${s.grades.length}`),
+    );
+    rows.push("");
+    rows.push("Все оценки");
+    rows.push("Дата;Предмет;Работа;Оценка;Комментарий");
+    gradeStats.allGrades
+      .slice()
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .forEach((g) => rows.push(`${g.date};${g.subject};${g.title};${g.grade};${g.comment}`));
     rows.push("");
     rows.push("Невыполненный план");
     rows.push("Дата");
@@ -184,9 +209,10 @@ function ProgressPage() {
         </p>
       </header>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-3">
+      <section className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Активных дней" value={String(totals.active)} />
         <Stat label="Выполнено заданий" value={String(totals.done)} />
+        <Stat label="Средний балл" value={gradeStats.overall.toFixed(1)} />
         <Stat
           label="Невыполненный план"
           value={String(totals.missedDays.length)}
